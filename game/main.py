@@ -31,18 +31,28 @@ def Generator_Map(mines):
                 if count > 0:
                     map[x][y] = str(count)
 
-    map_mines = []
-    map_mines.append([' '] + list(range(1, size + 1)))
+    map_mines = [[' '] + list(range(1, size + 1))]
     for i in range(size):
         map_mines.append([i + 1] + map[i])
 
     return map_mines
 
 
-def print_map(map):
+def print_map(map, flags=None):
     """Метод прорисовки карты"""
-    for row in map:
-        print(' '.join(str(cell) for cell in row))
+    if flags is None:
+        flags = set()
+
+    for i, row in enumerate(map):
+        printed_row = []
+        for j, cell in enumerate(row):
+            if (i - 1, j - 1) in flags and cell == 'M':
+                printed_row.append('F')
+            elif (i - 1, j - 1) in flags:
+                printed_row.append('?')
+            else:
+                printed_row.append(str(cell))
+        print(' '.join(printed_row))
 
 
 def get_bomb_count():
@@ -55,11 +65,20 @@ def get_bomb_count():
         break
 
 
+def get_action():
+    """Метод запроса действия: открыть или пометить"""
+    while True:
+        action = input("Выберите действие (d - открыть, f - пометить флагом): ").lower()
+        if action in ('d', 'f'):
+            return action
+        print("Используйте 'd' или 'f'!")
+
+
 def get_coordinates():
     """Получение координат с проверкой"""
     while True:
         try:
-            coords = input("Введите координаты (формат X-Y): ").split('-')
+            coords = input("Введите координаты (формат Y-X): ").split('-')
             if len(coords) != 2:
                 raise ValueError
             x, y = map(int, coords)
@@ -68,10 +87,10 @@ def get_coordinates():
                 continue
             return x - 1, y - 1  # Переводим в индексы массива
         except ValueError:
-            print("Ошибка! Используйте формат 'X-Y' (например, 3-5)")
+            print("Ошибка! Используйте формат 'Y-X' (например, 3-5)")
 
 
-def reveal_cells(map, player_map, x, y, size):
+def reveal_cells(map, player_map, display_map, x, y, size):
     """Рекурсивно открывает все соседние пустые клетки"""
     # Проверяем, что координаты в пределах поля и клетка еще не открыта
     if not (0 <= x < size and 0 <= y < size) or player_map[x][y] != '-':
@@ -79,6 +98,7 @@ def reveal_cells(map, player_map, x, y, size):
 
     # Открываем текущую клетку
     player_map[x][y] = map[x + 1][y + 1]  # +1 из-за заголовков в map
+    display_map[x + 1][y + 1] = player_map[x][y]  # Обновляем отображаемую карту
 
     # Если клетка пустая (не число и не мина), открываем соседей
     if player_map[x][y] == ' ':
@@ -87,25 +107,58 @@ def reveal_cells(map, player_map, x, y, size):
                       (1, -1), (1, 0), (1, 1)]
 
         for dx, dy in directions:
-            reveal_cells(map, player_map, x + dx, y + dy, size)
+            reveal_cells(map, player_map, display_map, x + dx, y + dy, size)
 
 
 def main():
-    dictionary_for_x_y = {'x': [], 'y': []}  # Словарь со списками для хранения истории
-    bomb_count = get_bomb_count()  # Вызов метода get_bomb_count и запись в переменную
+    dictionary_for_x_y = {'y': [], 'x': []}
+    bomb_count = get_bomb_count()
     hidden_map = Generator_Map(bomb_count)
     player_map = [['-' for _ in range(9)] for _ in range(9)]
+    flags = set()
+    correct_flags = set()
 
     # Добавляем номера строк и столбцов для отображения
     display_map = []
     display_map.append([' '] + list(range(1, 10)))
     for i in range(9):
         display_map.append([i + 1] + player_map[i])
+
     while True:
         print("\nТекущая карта:")
-        print_map(display_map)
+        print_map(display_map, flags)
+        action = get_action()
         x, y = get_coordinates()
 
+        # Проверка на уже открытую клетку
+        if player_map[x][y] != '-':
+            print("Эта клетка уже открыта!")
+            continue
+
+        if action == 'f':  # Пометить флагом
+            if (x, y) in flags:
+                flags.remove((x, y))
+                if hidden_map[x + 1][y + 1] == 'M':
+                    correct_flags.remove((x, y))
+            else:
+                flags.add((x, y))
+                if hidden_map[x + 1][y + 1] == 'M':
+                    correct_flags.add((x, y))
+
+            # Проверка победы по флагам
+            if len(correct_flags) == bomb_count and len(flags) == bomb_count:
+                print("\nПоздравляем! Вы правильно отметили все мины!")
+                print("Игровое поле:")
+                print_map(hidden_map)
+                break
+            continue
+
+        # Действие: открыть клетку
+        if (x, y) in flags:
+            print("Сначала уберите флаг с этой клетки!")
+            continue
+
+        # Проверка на мину ДО открытия
         if hidden_map[x + 1][y + 1] == 'M':
             print("\nBOOM! Вы наступили на мину!")
             print("Игровое поле:")
@@ -113,31 +166,20 @@ def main():
             break
 
         # Открываем клетку и соседей (если пустая)
-        reveal_cells(hidden_map, player_map, x, y, 9)
+        reveal_cells(hidden_map, player_map, display_map, x, y, 9)
 
-        # Обновляем отображаемую карту
-        display_map[x + 1][y + 1] = player_map[x][y]
+        # Добавляем в историю
+        dictionary_for_x_y['y'].append(x + 1)
+        dictionary_for_x_y['x'].append(y + 1)
+        print(x + 1, y + 1, dictionary_for_x_y)
 
-        # Проверка победы
-        if all(cell != '-' for row in player_map for cell in row):
-            print("\nПоздравляем! Вы победили!")
+        # Проверка победы по открытым клеткам
+        if all(player_map[i][j] != '-' or hidden_map[i + 1][j + 1] == 'M'
+               for i in range(9) for j in range(9)):
+            print("\nПоздравляем! Вы открыли все безопасные клетки!")
             print("Игровое поле:")
             print_map(hidden_map)
             break
-
-        found = False
-        for i in range(len(dictionary_for_x_y['x'])):
-            if dictionary_for_x_y['x'][i] == x+1 and dictionary_for_x_y['y'][i] == y+1:
-                found = True
-                break
-
-        if found:
-            print(f"Клетка {x+1}-{y+1} уже открыта!")
-            continue
-
-        dictionary_for_x_y['x'].append(x+1)  # добавление в список словаря
-        dictionary_for_x_y['y'].append(y+1)
-        print(x+1, y+1, dictionary_for_x_y)
 
 
 main()
