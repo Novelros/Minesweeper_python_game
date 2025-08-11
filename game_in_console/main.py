@@ -3,26 +3,31 @@ import random
 
 def Generator_Map(mines):
     """Метод создания карты"""
-    # Создаем пустую список
+    # Задаем размер игрового поля (классический сапёр - 9x9)
     size = 9
+    # Создаем пустое игровое поле, заполненное пробелами
+    # Пробел означает пустую клетку без мин и чисел
     map = [[' ' for _ in range(size)] for _ in range(size)]
     mines_count = mines
 
     mines = set()  # убрать дубликаты
+    # Генерация случайных мин
     while len(mines) < mines_count:
+        # Генерируем случайные координаты в пределах поля
         x, y = random.randint(0, size - 1), random.randint(0, size - 1)  # возвращает случайное число N, где a ≤ N ≤ b
         mines.add((x, y))
+        # Помечаем клетку с миной
         map[x][y] = 'M'
 
     # Заполняем числами (количество мин вокруг) - список смещений для проверки 8 соседних клеток:
-    directions = [(-1, -1), (-1, 0), (-1, 1),
-                  (0, -1), (0, 1),
-                  (1, -1), (1, 0), (1, 1)]
-
+    directions = [(-1, -1), (-1, 0), (-1, 1),  # Верхние соседи
+                  (0, -1), (0, 1),  # Боковые соседи
+                  (1, -1), (1, 0), (1, 1)]  # Нижние соседи
+    # Проходим по всем клеткам поля для заполнения чисел
     for x in range(size):
         for y in range(size):
             if map[x][y] != 'M':
-                count = 0
+                count = 0  # Счетчик мин вокруг
                 for dx, dy in directions:
                     nx, ny = x + dx, y + dy
                     if 0 <= nx < size and 0 <= ny < size:
@@ -34,7 +39,7 @@ def Generator_Map(mines):
     map_mines = [[' '] + list(range(1, size + 1))]
     for i in range(size):
         map_mines.append([i + 1] + map[i])
-
+    # Возвращаем готовое игровое поле
     return map_mines
 
 
@@ -58,8 +63,8 @@ def print_map(map, flags=None):
 def get_bomb_count():
     """Метод запроса у пользователя количества мин"""
     while True:
-        count_of_bomb = int(input("Ввидите два число - количество мин от 1-80\n"))
-        if abs(count_of_bomb - 40.5) > 39.5:
+        count_of_bomb = int(input("Введите одно число - количество мин от 1-80 шт.\n"))
+        if count_of_bomb < 1 or count_of_bomb > 80:
             continue
         return count_of_bomb
         break
