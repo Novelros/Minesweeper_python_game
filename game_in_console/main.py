@@ -1,45 +1,50 @@
 import random
 
 
-def Generator_Map(mines):
+def Generator_Map(mines, first_move):
     """Метод создания карты"""
     # Задаем размер игрового поля (классический сапёр - 9x9)
     size = 9
-    # Создаем пустое игровое поле, заполненное пробелами
-    # Пробел означает пустую клетку без мин и чисел
-    map = [[' ' for _ in range(size)] for _ in range(size)]
-    mines_count = mines
+    map_dict = {}  # Используем словарь вместо списка
 
+    mines_count = mines
     mines = set()  # убрать дубликаты
-    # Генерация случайных мин
+
+    # Генерация случайных мин, исключая первую клетку игрока
+    first_x, first_y = first_move
     while len(mines) < mines_count:
-        # Генерируем случайные координаты в пределах поля
-        x, y = random.randint(0, size - 1), random.randint(0, size - 1)  # возвращает случайное число N, где a ≤ N ≤ b
-        mines.add((x, y))
-        # Помечаем клетку с миной
-        map[x][y] = 'M'
+        x, y = random.randint(0, size - 1), random.randint(0, size - 1)
+        if (x, y) != (first_x, first_y):  # Исключаем первую клетку игрока
+            mines.add((x, y))
+            map_dict[(x, y)] = 'M'  # Записываем мину в словарь
 
     # Заполняем числами (количество мин вокруг) - список смещений для проверки 8 соседних клеток:
     directions = [(-1, -1), (-1, 0), (-1, 1),  # Верхние соседи
                   (0, -1), (0, 1),  # Боковые соседи
                   (1, -1), (1, 0), (1, 1)]  # Нижние соседи
+
     # Проходим по всем клеткам поля для заполнения чисел
     for x in range(size):
         for y in range(size):
-            if map[x][y] != 'M':
-                count = 0  # Счетчик мин вокруг
+            if (x, y) not in map_dict:  # Если это не мина
+                count = 0
                 for dx, dy in directions:
                     nx, ny = x + dx, y + dy
-                    if 0 <= nx < size and 0 <= ny < size:
-                        if map[nx][ny] == 'M':
-                            count += 1
+                    if (nx, ny) in map_dict and map_dict[(nx, ny)] == 'M':
+                        count += 1
                 if count > 0:
-                    map[x][y] = str(count)
+                    map_dict[(x, y)] = str(count)
+                else:
+                    map_dict[(x, y)] = ' '
 
+    # Преобразуем словарь обратно в список
     map_mines = [[' '] + list(range(1, size + 1))]
     for i in range(size):
-        map_mines.append([i + 1] + map[i])
-    # Возвращаем готовое игровое поле
+        row = [i + 1]
+        for j in range(size):
+            row.append(map_dict.get((i, j), ' '))
+        map_mines.append(row)
+
     return map_mines
 
 
@@ -81,17 +86,20 @@ def get_action():
 
 def get_coordinates():
     """Получение координат с проверкой"""
+    MIN = 1
+    MAX = 9
     while True:
         try:
-            coords = input("Введите координаты (формат Y-X): ").split('-')
+            coords = input("Введите координаты (формат Y-X): ").strip().split('-')
             if len(coords) != 2:
-                raise ValueError
+                raise ValueError("Неправильный формат ввода")
             x, y = map(int, coords)
-            if abs(x - 5.5) > 4.5 or abs(y - 5.5) > 4.5:
-                print("Координаты должны быть от 1 до 9!")
+            if not (MIN <= x <= MAX) or not (MIN <= y <= MAX):
+                print(f"Координаты должны быть от {MIN} до {MAX}!")
                 continue
-            return x - 1, y - 1  # Переводим в индексы массива
-        except ValueError:
+            return x - 1, y - 1  # Переводим в индексы массива (0-8)
+
+        except ValueError as e:
             print("Ошибка! Используйте формат 'Y-X' (например, 3-5)")
 
 
@@ -118,7 +126,14 @@ def reveal_cells(map, player_map, display_map, x, y, size):
 def main():
     dictionary_for_x_y = {'y': [], 'x': []}
     bomb_count = get_bomb_count()
-    hidden_map = Generator_Map(bomb_count)
+
+    # Получаем первый ход до генерации карты
+    print("Сделайте первый ход:")
+    first_x, first_y = get_coordinates()
+
+    # Генерируем карту с минами, исключая первую клетку игрока
+    hidden_map = Generator_Map(bomb_count, (first_x, first_y))
+
     player_map = [['-' for _ in range(9)] for _ in range(9)]
     flags = set()
     correct_flags = set()
@@ -128,6 +143,12 @@ def main():
     display_map.append([' '] + list(range(1, 10)))
     for i in range(9):
         display_map.append([i + 1] + player_map[i])
+
+    # Обрабатываем первый ход
+    reveal_cells(hidden_map, player_map, display_map, first_x, first_y, 9)
+    dictionary_for_x_y['y'].append(first_x + 1)
+    dictionary_for_x_y['x'].append(first_y + 1)
+    print(first_x + 1, first_y + 1, dictionary_for_x_y)
 
     while True:
         print("\nТекущая карта:")
@@ -152,7 +173,7 @@ def main():
 
             # Проверка победы по флагам
             if len(correct_flags) == bomb_count and len(flags) == bomb_count:
-                print("\nПоздравляем! Вы правильно отметили все мины!")
+                print("\nПоздравляем! Вы правильно отметили все мины")
                 print("Игровое поле:")
                 print_map(hidden_map)
                 break
@@ -165,7 +186,7 @@ def main():
 
         # Проверка на мину ДО открытия
         if hidden_map[x + 1][y + 1] == 'M':
-            print("\nBOOM! Вы наступили на мину!")
+            print("\nBOOM! Вы наступили на мину")
             print("Игровое поле:")
             print_map(hidden_map)
             break
@@ -181,7 +202,7 @@ def main():
         # Проверка победы по открытым клеткам
         if all(player_map[i][j] != '-' or hidden_map[i + 1][j + 1] == 'M'
                for i in range(9) for j in range(9)):
-            print("\nПоздравляем! Вы открыли все безопасные клетки!")
+            print("\nПоздравляем! Вы открыли все безопасные клетки")
             print("Игровое поле:")
             print_map(hidden_map)
             break
