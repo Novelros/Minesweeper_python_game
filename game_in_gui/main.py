@@ -51,7 +51,7 @@ class MinesweeperGUI:
         self.timer_label = tk.Label(
             self.root,
             text="Время: 0 сек",
-            font=('Arial', 12)
+            font=('Calibri', 12)
         )
         self.timer_label.grid(row=0, column=0, columnspan=self.grid_size, sticky="ew")
 
