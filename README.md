@@ -6,6 +6,7 @@
 
 и вторая версия 
 
-<img width="260" height="258" alt="{5A5DAA7E-82EA-4166-B39B-13A0B7C105EE}" src="https://github.com/user-attachments/assets/df9db51b-34f2-4fc6-a7de-710191bcbd26" />
+<img width="224" height="277" alt="{F6C55F7B-7572-42FD-9BFD-BC9568185FEF}" src="https://github.com/user-attachments/assets/8656ad52-5176-4cbb-ad74-3de2a05f6850" />
+
 
 
