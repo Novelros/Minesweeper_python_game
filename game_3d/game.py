@@ -8,41 +8,49 @@ from renderer import Renderer
 
 class Minesweeper3D:
     def __init__(self, settings):
+        """
+        Инициализация игры с настройками и создание игрового окружения
+
+        Args:
+            settings: Словарь настроек игры (размер поля, количество мин и т.д.)
+        """
         self.settings = settings
         self.grid_size = settings['grid_size']
         self.mine_count = settings['mine_count']
 
         self.last_arrow_time = 0
-        self.width, self.height =  (1280, 1024)
+        self.width, self.height = (1280, 1024)
 
-
-        # Создаем OpenGL окно
+        # Создаем OpenGL окно с указанными параметрами
         pygame.display.set_mode((self.width, self.height), DOUBLEBUF | OPENGL)
         pygame.display.set_caption("3D Minesweeper - Use WASD, Arrows, Q/E, Space, F, R")
 
-        # Инициализация рендерера
+        # Инициализация рендерера для 3D-графики
         self.renderer = Renderer(self.width, self.height, self.grid_size, self.settings['lighting_enabled'])
-        # Инициализация игры
+        # Первоначальная настройка игрового состояния
         self.init_game()
 
     def init_game(self):
-        """Инициализация или сброс игрового состояния"""
+        """
+        Инициализация или сброс игрового состояния к начальным значениям
+
+        Создает чистую сетку, сбрасывает позицию курсора, таймеры и флаги состояния игры
+        """
         # Создаем сетку клеток с начальными значениями
         self.grid = [[{'mine': False, 'revealed': False, 'flagged': False, 'adjacent': 0}
                       for _ in range(self.grid_size)] for _ in range(self.grid_size)]
 
-        # Позиция курсора (начинаем в центре)
+        # Позиция курсора (начинаем в центре поля)
         self.cursor_pos = [self.grid_size // 2, self.grid_size // 2]
 
         # Состояние игры
-        self.game_over = False
-        self.win = False
-        self.first_click = True
-        self.start_time = pygame.time.get_ticks()
-        self.elapsed_time = 0
+        self.game_over = False  # Флаг завершения игры
+        self.win = False  # Флаг победы
+        self.first_click = True  # Флаг первого хода (для безопасного старта)
+        self.start_time = pygame.time.get_ticks()  # Время начала игры
+        self.elapsed_time = 0  # Прошедшее время игры
 
-
-        # Словарь для отслеживания состояния клавиш
+        # Словарь для отслеживания состояния клавиш управления
         self.keys_pressed = {
             pygame.K_w: False, pygame.K_s: False, pygame.K_a: False, pygame.K_d: False,
             pygame.K_q: False, pygame.K_e: False, pygame.K_UP: False, pygame.K_DOWN: False,

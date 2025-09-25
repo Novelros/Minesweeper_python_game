@@ -5,56 +5,80 @@ import pygame
 
 class Renderer:
     def __init__(self, width, height, grid_size, lighting_enabled=True):
+        """
+        Инициализация рендерера для 3D-визуализации игрового поля
+
+        Args:
+            width: Ширина окна отображения
+            height: Высота окна отображения
+            grid_size: Размер игрового поля (количество клеток)
+            lighting_enabled: Флаг включения освещения (по умолчанию True)
+        """
         self.width = width
         self.height = height
         self.grid_size = grid_size
-        self.cell_size = 2
-        self.depth = 0.7
+        self.cell_size = 2  # Размер одной клетки в 3D-пространстве
+        self.depth = 0.7  # Глубина клеток
 
+        # Создание квадриков для отрисовки 3D-объектов (мины и шипы)
         self.mine_quadric = gluNewQuadric()
         self.spike_quadric = gluNewQuadric()
 
         # Параметры камеры
-        self.camera_distance = -30
-        self.camera_rotation_x = 30
-        self.camera_rotation_y = -45
+        self.camera_distance = -30  # Дистанция камеры от центра сцены
+        self.camera_rotation_x = 30  # Угол поворота по оси X (наклон)
+        self.camera_rotation_y = -45  # Угол поворота по оси Y (вращение)
 
         # Настройка OpenGL
-        gluPerspective(60, (width / height), 0.1, 75.0)
-        glTranslatef(0.0, 0.0, self.camera_distance)
-        glRotatef(self.camera_rotation_x, 1, 0, 0)
-        glRotatef(self.camera_rotation_y, 0, 1, 0)
-        glEnable(GL_DEPTH_TEST)
-        glEnable(GL_COLOR_MATERIAL)
+        gluPerspective(60, (width / height), 0.1, 75.0)  # Перспективная проекция
+        glTranslatef(0.0, 0.0, self.camera_distance)  # Позиционирование камеры
+        glRotatef(self.camera_rotation_x, 1, 0, 0)  # Поворот по оси X
+        glRotatef(self.camera_rotation_y, 0, 1, 0)  # Поворот по оси Y
+        glEnable(GL_DEPTH_TEST)  # Включение теста глубины
+        glEnable(GL_COLOR_MATERIAL)  # Включение цветовых материалов
 
+        # Настройка освещения если включено
         if lighting_enabled:
             self.setup_lighting()
 
+        # Инициализация шрифта для текстовых надписей
         pygame.font.init()
         self.font = pygame.font.SysFont('Times New Roman', 24)
 
-
     def setup_lighting(self):
-        glEnable(GL_LIGHTING)
-        glEnable(GL_LIGHT0)
-        glEnable(GL_LIGHT1)
+        """
+        Настройка системы освещения сцены с двумя источниками света
 
+        Создает основное и дополнительное освещение для лучшей визуализации 3D-объектов
+        """
+        glEnable(GL_LIGHTING)  # Включение системы освещения
+        glEnable(GL_LIGHT0)  # Активация первого источника света
+        glEnable(GL_LIGHT1)  # Активация второго источника света
+
+        # Расчет половины размера игрового поля для позиционирования света
         field_half_size = (self.grid_size * self.cell_size) / 2
 
+        # Настройка первого источника света (верхний-правый)
         glLightfv(GL_LIGHT0, GL_POSITION, (field_half_size, -field_half_size, 10, 1))
-        glLightfv(GL_LIGHT0, GL_DIFFUSE, (0.8, 0.8, 0.8, 1))
-        glLightfv(GL_LIGHT0, GL_AMBIENT, (0.2, 0.2, 0.2, 1))
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, (0.8, 0.8, 0.8, 1))  # Рассеянный свет
+        glLightfv(GL_LIGHT0, GL_AMBIENT, (0.2, 0.2, 0.2, 1))  # Фоновое освещение
 
-        glLightfv(GL_LIGHT1, GL_POSITION, (0, 0, 100, 1))  # Сбоку-спереди
-        glLightfv(GL_LIGHT1, GL_DIFFUSE, (0.8, 0.8, 0.8, 1))
-        glLightfv(GL_LIGHT1, GL_AMBIENT, (0.2, 0.2, 0.2, 1))
+        # Настройка второго источника света (спереди-сверху)
+        glLightfv(GL_LIGHT1, GL_POSITION, (0, 0, 100, 1))
+        glLightfv(GL_LIGHT1, GL_DIFFUSE, (0.8, 0.8, 0.8, 1))  # Рассеянный свет
+        glLightfv(GL_LIGHT1, GL_AMBIENT, (0.2, 0.2, 0.2, 1))  # Фоновое освещение
 
     def update_camera(self):
-        glLoadIdentity()
-        gluPerspective(60, (self.width / self.height), 0.1, 75.0)
-        glTranslatef(0.0, 0.0, self.camera_distance)
-        glRotatef(self.camera_rotation_x, 1, 0, 0)
-        glRotatef(self.camera_rotation_y, 0, 1, 0)
+        """
+        Обновление позиции и ориентации камеры в 3D-пространстве
+
+        Сбрасывает матрицу преобразований и применяет текущие параметры камеры
+        """
+        glLoadIdentity()  # Сброс матрицы преобразований
+        gluPerspective(60, (self.width / self.height), 0.1, 75.0)  # Установка перспективы
+        glTranslatef(0.0, 0.0, self.camera_distance)  # Перемещение камеры
+        glRotatef(self.camera_rotation_x, 1, 0, 0)  # Поворот по оси X (вертикальный наклон)
+        glRotatef(self.camera_rotation_y, 0, 1, 0)  # Поворот по оси Y (горизонтальное вращение)
 
     def draw_cube(self, x, y, z, color):
         """
@@ -90,39 +114,52 @@ class Renderer:
         glEnd()
 
     def draw_grid(self, grid, cursor_pos, grid_size):
+        """
+        Отрисовка игрового поля с клетками, минами, флагами и курсором
+
+        Args:
+            grid: Двумерный массив клеток игрового поля
+            cursor_pos: Текущая позиция курсора (x, y)
+            grid_size: Размер игрового поля
+        """
+        # Смещение для центрирования поля относительно начала координат
         offset_x = -grid_size * self.cell_size / 2
         offset_y = -grid_size * self.cell_size / 2
 
+        # Отрисовка всех клеток поля
         for y in range(grid_size):
             for x in range(grid_size):
                 cell_x = offset_x + x * self.cell_size
                 cell_y = offset_y + y * self.cell_size
                 cell = grid[y][x]
 
+                # Выбор цвета клетки в зависимости от состояния
                 if cell['revealed']:
-                    color = (1, 0, 0) if cell['mine'] else (0.8, 0.8, 0.8)
+                    color = (1, 0, 0) if cell['mine'] else (0.8, 0.8, 0.8)  # Красный для мин, серый для пустых
                 else:
-                    color = (0.4, 0.4, 0.8)
+                    color = (0.4, 0.4, 0.8)  # Синий для неоткрытых клеток
 
+                # Отрисовка базового куба клетки
                 self.draw_cube(cell_x, cell_y, 0, color)
 
+                # Отрисовка содержимого открытых клеток
                 if cell['revealed']:
                     if cell['mine']:
-                        self.draw_mine(cell_x, cell_y)
+                        self.draw_mine(cell_x, cell_y)  # Мина
                     elif cell['adjacent'] > 0:
-                        self.draw_number(cell_x, cell_y, cell['adjacent'])
+                        self.draw_number(cell_x, cell_y, cell['adjacent'])  # Число соседних мин
                 elif cell['flagged']:
-                    self.draw_flag(cell_x, cell_y)
+                    self.draw_flag(cell_x, cell_y)  # Флаг
 
-        # Курсор
+        # Отрисовка курсора (желтая рамка поверх клетки)
         cursor_x = offset_x + cursor_pos[0] * self.cell_size
         cursor_y = offset_y + cursor_pos[1] * self.cell_size
-        glColor3f(1, 1, 0)
+        glColor3f(1, 1, 0)  # Желтый цвет
         glBegin(GL_LINE_LOOP)
-        glVertex3f(cursor_x, cursor_y, 0.1)
-        glVertex3f(cursor_x + self.cell_size, cursor_y, 0.1)
-        glVertex3f(cursor_x + self.cell_size, cursor_y + self.cell_size, 0.1)
-        glVertex3f(cursor_x, cursor_y + self.cell_size, 0.1)
+        glVertex3f(cursor_x, cursor_y, 0.1)  # Лево-низ
+        glVertex3f(cursor_x + self.cell_size, cursor_y, 0.1)  # Право-низ
+        glVertex3f(cursor_x + self.cell_size, cursor_y + self.cell_size, 0.1)  # Право-верх
+        glVertex3f(cursor_x, cursor_y + self.cell_size, 0.1)  # Лево-верх
         glEnd()
 
     def draw_text(self, text, x, y, background=False):
